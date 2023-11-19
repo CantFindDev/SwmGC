@@ -3,6 +3,7 @@ package com.grinderwolf.swm.plugin;
 import com.flowpowered.nbt.CompoundMap;
 import com.flowpowered.nbt.CompoundTag;
 import com.google.common.collect.ImmutableList;
+import com.grinderwolf.swm.plugin.Utils.WorldManager;
 import com.grinderwolf.swm.plugin.commands.CommandManager;
 import com.grinderwolf.swm.plugin.config.ConfigManager;
 import com.grinderwolf.swm.plugin.config.WorldData;
@@ -31,8 +32,11 @@ import com.infernalsuite.aswm.api.world.SlimeWorldInstance;
 import com.infernalsuite.aswm.api.world.properties.SlimePropertyMap;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
@@ -47,7 +51,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
+import static org.bukkit.ChatColor.GREEN;
+import static org.bukkit.ChatColor.YELLOW;
 
 public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
 
@@ -144,49 +154,33 @@ public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
 
         this.getServer().getPluginManager().registerEvents(this, this);
         this.getServer().getPluginManager().registerEvents(new WorldListener(), this);
-        loadedWorlds.clear(); // - Commented out because not sure why this would be cleared. Needs checking
     }
 
     @Override
     public void onDisable() {
-//        Bukkit.getWorlds().stream()
-//                .map(world -> bridge.getSlimeWorld(world))
-//                .filter(Objects::nonNull)
-//                .filter((slimeWorld -> !slimeWorld.isReadOnly()))
-//                .map(w -> (SlimeLoadedWorld) w)
-//                .forEach(world -> {
-//                    try {
-//                        SlimeLoader loader = world.getLoader();
-//                        String name = world.getName();
-//
-//                        loader.saveWorld(
-//                                name,
-//                                world.serialize().join(),
-//                                world.isLocked()
-//                        );
-//
-//                        if (loader.isWorldLocked(name)) {
-//                            loader.unlockWorld(name);
-//                        }
-//                    } catch (IOException | UnknownWorldException e) {
-//                        e.printStackTrace();
-//                    }
-//                });
-    }
+        var players = Bukkit.getServer().getOnlinePlayers();
+        Location spawnLocation = WorldManager.findValidDefaultSpawn();
+        AtomicBoolean success = new AtomicBoolean();
+        CompletableFuture<Void> cf = CompletableFuture.allOf(players.stream().map(player -> player.teleportAsync(spawnLocation)).collect(Collectors.toList()).toArray(CompletableFuture[]::new));
+        cf.thenRun(() -> {
+            Logging.success("World unloading started");
+            for (SlimeWorld slimeWorld : getLoadedWorlds()) {
+                World world = Bukkit.getWorld(slimeWorld.getName());
+                String worldName = world.getName();
 
-//    private SlimeNMS getNMSBridge() throws InvalidVersionException {
-//        String version = Bukkit.getServer().getClass().getPackage().getName();
-//        String nmsVersion = version.substring(version.lastIndexOf('.') + 1);
-//
-//        int dataVersion = Bukkit.getUnsafe().getDataVersion();
-//        return switch (dataVersion) {
-//            case 2975 -> new v1182SlimeNMS(isPaperMC);
-//            case 3105 -> new v119SlimeNMS(isPaperMC);
-//            case 3117 -> new v1191SlimeNMS(isPaperMC);
-//            case 3120 -> new v1192SlimeNMS(isPaperMC);
-//            default -> throw new InvalidVersionException("" + dataVersion);
-//        };
-//    }
+                success.set(Bukkit.unloadWorld(world, true));
+                if (!success.get()) {
+                    Logging.error("Failed to unload world " + worldName + ".");
+                } else {
+                    WorldManager.unlockWorld(slimeWorld);
+                    Logging.warning(worldName + ChatColor.GREEN + " Has been saved and unloaded succesfully");
+                    world.save();
+                }
+            }
+            Logging.success("World unloading ended");
+        });
+        Logging.success("SlimeWorldGrowtoCraft Plugins has shutted down successfully");
+    }
 
     private List<String> loadWorlds() {
         List<String> erroredWorlds = new ArrayList<>();
@@ -248,14 +242,14 @@ public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
 
         long start = System.currentTimeMillis();
 
-        Logging.info("Loading world " + worldName + ".");
+        Logging.success("Loading world "+ YELLOW + worldName + ".");
         byte[] serializedWorld = loader.loadWorld(worldName);
 
         SlimeWorld slimeWorld = SlimeWorldReaderRegistry.readWorld(loader , worldName, serializedWorld, propertyMap, readOnly);
-        Logging.info("Applying datafixers for " + worldName + ".");
+        Logging.success("Applying datafixers for "  + YELLOW + worldName + GREEN + ".");
         SlimeNMSBridge.instance().applyDataFixers(slimeWorld);
 
-        Logging.info("World " + worldName + " loaded in " + (System.currentTimeMillis() - start) + "ms.");
+        Logging.success("World " + worldName + " loaded in " + YELLOW + (System.currentTimeMillis() - start) + "ms.");
 
         registerWorld(slimeWorld);
         return slimeWorld;

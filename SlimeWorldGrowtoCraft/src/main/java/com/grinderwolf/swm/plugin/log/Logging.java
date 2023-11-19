@@ -8,6 +8,7 @@ public class Logging {
     public static final String COMMAND_PREFIX = ChatColor.YELLOW + ChatColor.BOLD.toString() + "GC " + ChatColor.GRAY + ">> ";
     private static final String CONSOLE_PREFIX = ChatColor.YELLOW + "[GC] ";
 
+
     public static void success(String message) {
         Bukkit.getConsoleSender().sendMessage(CONSOLE_PREFIX + ChatColor.GREEN + message);
     }

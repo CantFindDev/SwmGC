@@ -28,7 +28,7 @@ public class UnloadWorldCmd implements Subcommand {
 
     @Override
     public boolean onCommand(CommandSender sender, String[] args) {
-        return WorldManager.unloadWorld(args);
+        return WorldManager.unloadWorld(args,true);
     }
 
     @Override

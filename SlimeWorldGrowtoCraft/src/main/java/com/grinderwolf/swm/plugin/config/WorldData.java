@@ -90,7 +90,6 @@ public class WorldData {
         propertyMap.setValue(ENVIRONMENT, environment);
         propertyMap.setValue(WORLD_TYPE, worldType);
         propertyMap.setValue(DEFAULT_BIOME, defaultBiome);
-       //propertyMap.setValue(WORLD_OWNER, worldOwner);
 
         return propertyMap;
     }

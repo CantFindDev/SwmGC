@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class WarpCmd implements Subcommand {
 
@@ -77,7 +78,6 @@ public class WarpCmd implements Subcommand {
 
                 return true;
             }
-
             target = (Player) sender;
         }
 
@@ -103,7 +103,7 @@ public class WarpCmd implements Subcommand {
         }
 
         World CurrentWorld = target.getWorld();
-        List<Player> players = world.getPlayers();
+        var players = CurrentWorld.getPlayers();
         boolean HasMoved;
         if (SWMPlugin.isPaperMC()) {
             target.teleportAsync(spawnLocation);
@@ -112,7 +112,8 @@ public class WarpCmd implements Subcommand {
             target.teleport(spawnLocation);
             HasMoved = true;
         }
-        if (LoadOnWarp && players.isEmpty() && HasMoved) {WorldManager.unloadWorld(CurrentWorld);}
+        players.remove(target);
+        if (LoadOnWarp && players.isEmpty() && HasMoved) {WorldManager.unloadWorld(CurrentWorld,true);}
 
         return true;
     }
