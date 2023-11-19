@@ -223,7 +223,7 @@ public class WorldManager {
         try {
             if (world.getLoader() != null) {
                 world.getLoader().unlockWorld(world.getName());
-                Logging.warning(world.getName() +ChatColor.GREEN + " Unlocked world");
+                Logging.warning("Unlocked world: " + world.getName() + ChatColor.GREEN);
             }
         } catch (IOException ex) {
             Logging.error("Failed to unlock world " + world.getName() + ". Retrying in 5 seconds. Stack trace:");

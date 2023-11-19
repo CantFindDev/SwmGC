@@ -163,9 +163,8 @@ public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
         AtomicBoolean success = new AtomicBoolean();
         CompletableFuture<Void> cf = CompletableFuture.allOf(players.stream().map(player -> player.teleportAsync(spawnLocation)).collect(Collectors.toList()).toArray(CompletableFuture[]::new));
         cf.thenRun(() -> {
-            if (getLoadedWorlds() != null) {
-                Logging.success("World unloading started");
-
+            if (!getLoadedWorlds().isEmpty()) {
+                Logging.warning("World unloading started");
                 for (SlimeWorld slimeWorld : getLoadedWorlds()) {
                     World world = Bukkit.getWorld(slimeWorld.getName());
                     String worldName = world.getName();
@@ -175,13 +174,13 @@ public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
                         Logging.error("Failed to unload world " + worldName + ".");
                     } else {
                         WorldManager.unlockWorld(slimeWorld);
-                        Logging.warning(worldName + ChatColor.GREEN + " Has been saved and unloaded succesfully");
+                        Logging.success(worldName + YELLOW + " Has been saved and unloaded succesfully");
                         world.save();
                     }
                 }
-                Logging.success("World unloading ended");
+                Logging.warning("World unloading ended");
             }else {
-                Logging.warning("There are no world to save");
+                Logging.warning("There are no worlds to save");
             }
         });
         Logging.success("SlimeWorldGrowtoCraft Plugins has shutted down successfully");
