@@ -30,10 +30,10 @@ public class WorldListener implements Listener {
     public void onPlayerLeave(PlayerQuitEvent e) {
         Player target = e.getPlayer();
         World world = target.getWorld();
-        String[] worldName = new String[]{world.getName()};
+        String worldName = world.getName();
 
         List<Player> players = world.getPlayers();
         players.remove(target);
-        if (players.isEmpty()) WorldManager.unloadWorld(worldName);
+        if (players.isEmpty()) WorldManager.unloadWorld(worldName,true);
     }
 }

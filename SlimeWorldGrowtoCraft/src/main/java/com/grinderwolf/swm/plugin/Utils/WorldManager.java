@@ -124,16 +124,16 @@ public class WorldManager {
         }
         return false;
     }
-    public static boolean unloadWorld(World world) {
+    public static boolean unloadWorld(World world,boolean teleportPlayers) {
         String[] args = new String[] {world.getName()};
-        return (unloadWorld(args));
+        return (unloadWorld(args,teleportPlayers));
     }
-    public static boolean unloadWorld(String worldName) {
+    public static boolean unloadWorld(String worldName,boolean teleportPlayers) {
         String[] args = new String[] {worldName};
-        return (unloadWorld(args));
+        return (unloadWorld(args,teleportPlayers));
     }
     //World Unloading System\\
-    public static boolean unloadWorld(String[] args) {
+    public static boolean unloadWorld(String[] args,boolean teleportPlayers) {
 
         if (args.length == 0) {
             return false;
@@ -145,19 +145,18 @@ public class WorldManager {
 
         if (world == null) {
             Logging.error("World " + worldName + " is not loaded!");
-
             return true;
         }
 
         String[] bannedWorlds = {"world", "world_nether", "world_the_end"};
-     for (int i = 0; i <= bannedWorlds.length; i++) {
-         if (!worldName.toLowerCase().equals(bannedWorlds[i].toLowerCase())) {
-             break;
-         } else {
-             Logging.error("The world named: " + worldName + " is BANNED");
-             return true;
-         }
-     }
+        for (int i = 0; i <= bannedWorlds.length; i++) {
+            if (!worldName.toLowerCase().equals(bannedWorlds[i].toLowerCase())) {
+                break;
+            } else {
+                Logging.error("The world named: " + worldName + " is BANNED");
+                return true;
+            }
+        }
 
         String source = null;
         if (args.length > 1) {
@@ -172,33 +171,37 @@ public class WorldManager {
         }
 
         var loader = source == null ? null : LoaderUtils.getLoader(source);
-
-        // Teleport all players outside the world before unloading it
         var players = world.getPlayers();
 
-        AtomicBoolean success = new AtomicBoolean();
-
-        if (!players.isEmpty()) {
-            Location spawnLocation = findValidDefaultSpawn();
-            CompletableFuture<Void> cf = CompletableFuture.allOf(players.stream().map(player -> player.teleportAsync(spawnLocation)).collect(Collectors.toList()).toArray(CompletableFuture[]::new));
-            cf.thenRun(() -> {
-                Bukkit.getScheduler().runTask(SWMPlugin.getInstance(), () -> success.set(Bukkit.unloadWorld(world, true)));
-                if (!success.get()) {
-                    Logging.error("Failed to unload world " + worldName + ".");
-                } else {
-                    world.save();
-                }
-                unlockWorld(world, loader);
-            });
+        if (teleportPlayers) {       // Teleport all players outside the world before unloading it
+            AtomicBoolean success = new AtomicBoolean();
+            if (!players.isEmpty()) {
+                Location spawnLocation = findValidDefaultSpawn();
+                CompletableFuture<Void> cf = CompletableFuture.allOf(players.stream().map(player -> player.teleportAsync(spawnLocation)).collect(Collectors.toList()).toArray(CompletableFuture[]::new));
+                cf.thenRun(() -> {
+                    Bukkit.getScheduler().runTask(SWMPlugin.getInstance(), () -> success.set(Bukkit.unloadWorld(world, true)));
+                    if (!success.get()) {
+                        Logging.error("Failed to unload world " + worldName + ".");
+                    } else {
+                        world.save();
+                    }
+                    unlockWorld(world, loader);
+                });
+            }
         } else {
-            Bukkit.unloadWorld(world, true);
-            unlockWorld(world, loader);
+            Logging.success(args[0] + " Started to unload");
+            if (players.isEmpty() && Bukkit.unloadWorld(world, true)) {
+                world.save();
+                unlockWorld(world, loader);
+            } else {
+                Logging.error("Failed to unload world " + worldName + ".");
+            }
         }
         return true;
     }
 
     //World Unlocker\\
-    private static void unlockWorld(World world, SlimeLoader loader) {
+    public static void unlockWorld(World world, SlimeLoader loader) {
         String worldName = world.getName();
         Logging.warning("Attempting to unlock world.. " + worldName + ".");
         try {
@@ -220,6 +223,7 @@ public class WorldManager {
         try {
             if (world.getLoader() != null) {
                 world.getLoader().unlockWorld(world.getName());
+                Logging.warning(world.getName() +ChatColor.GREEN + " Unlocked world");
             }
         } catch (IOException ex) {
             Logging.error("Failed to unlock world " + world.getName() + ". Retrying in 5 seconds. Stack trace:");
