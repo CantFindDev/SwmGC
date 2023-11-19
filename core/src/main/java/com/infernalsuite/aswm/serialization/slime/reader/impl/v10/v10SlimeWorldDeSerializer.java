@@ -54,7 +54,7 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
         byte[] extra = readCompressed(dataStream);
 
         // Entity deserialization
-        com.flowpowered.nbt.CompoundTag entitiesCompound = readCompound(entities);
+        CompoundTag entitiesCompound = readCompound(entities);
         {
             List<CompoundTag> serializedEntities = ((ListTag<CompoundTag>) entitiesCompound.getValue().get("entities")).getValue();
             for (CompoundTag entityCompound : serializedEntities) {
@@ -71,8 +71,8 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
         }
 
         // Tile Entity deserialization
-        com.flowpowered.nbt.CompoundTag tileEntitiesCompound = readCompound(tileEntities);
-        for (CompoundTag tileEntityCompound : ((com.flowpowered.nbt.ListTag<com.flowpowered.nbt.CompoundTag>) tileEntitiesCompound.getValue().get("tiles")).getValue()) {
+        CompoundTag tileEntitiesCompound = readCompound(tileEntities);
+        for (CompoundTag tileEntityCompound : ((ListTag<CompoundTag>) tileEntitiesCompound.getValue().get("tiles")).getValue()) {
             int chunkX = ((IntTag) tileEntityCompound.getValue().get("x")).getValue() >> 4;
             int chunkZ = ((IntTag) tileEntityCompound.getValue().get("z")).getValue() >> 4;
             ChunkPos pos = new ChunkPos(chunkX, chunkZ);
@@ -86,13 +86,13 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
         }
 
         // Extra Data
-        com.flowpowered.nbt.CompoundTag extraCompound = readCompound(extra);
+        CompoundTag extraCompound = readCompound(extra);
 
         // World properties
         SlimePropertyMap worldPropertyMap = propertyMap;
         Optional<CompoundMap> propertiesMap = extraCompound
                 .getAsCompoundTag("properties")
-                .map(com.flowpowered.nbt.CompoundTag::getValue);
+                .map(CompoundTag::getValue);
 
         if (propertiesMap.isPresent()) {
             worldPropertyMap = new SlimePropertyMap(propertiesMap.get());
@@ -119,7 +119,7 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
             // Height Maps
             byte[] heightMapData = new byte[chunkData.readInt()];
             chunkData.read(heightMapData);
-            com.flowpowered.nbt.CompoundTag heightMaps = readCompound(heightMapData);
+            CompoundTag heightMaps = readCompound(heightMapData);
 
             // Chunk Sections
             {
@@ -152,12 +152,12 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
                     // Block data
                     byte[] blockStateData = new byte[chunkData.readInt()];
                     chunkData.read(blockStateData);
-                    com.flowpowered.nbt.CompoundTag blockStateTag = readCompound(blockStateData);
+                    CompoundTag blockStateTag = readCompound(blockStateData);
 
                     // Biome Data
                     byte[] biomeData = new byte[chunkData.readInt()];
                     chunkData.read(biomeData);
-                    com.flowpowered.nbt.CompoundTag biomeTag = readCompound(biomeData);
+                    CompoundTag biomeTag = readCompound(biomeData);
 
                     chunkSectionArray[sectionId] = new SlimeChunkSectionSkeleton(
                             blockStateTag,
@@ -195,13 +195,13 @@ class v10SlimeWorldDeSerializer implements VersionedByteSlimeWorldReader<SlimeWo
         return normal;
     }
 
-    private static com.flowpowered.nbt.CompoundTag readCompound(byte[] bytes) throws IOException {
+    private static CompoundTag readCompound(byte[] bytes) throws IOException {
         if (bytes.length == 0) {
             return null;
         }
 
         NBTInputStream stream = new NBTInputStream(new ByteArrayInputStream(bytes), NBTInputStream.NO_COMPRESSION, ByteOrder.BIG_ENDIAN);
-        return (com.flowpowered.nbt.CompoundTag) stream.readTag();
+        return (CompoundTag) stream.readTag();
     }
 
 
