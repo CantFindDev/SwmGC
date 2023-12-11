@@ -249,14 +249,17 @@ public class SWMPlugin extends JavaPlugin implements SlimePlugin, Listener {
         Logging.success("Loading world "+ YELLOW + worldName + ".");
         byte[] serializedWorld = loader.loadWorld(worldName);
 
-        SlimeWorld slimeWorld = SlimeWorldReaderRegistry.readWorld(loader , worldName, serializedWorld, propertyMap, readOnly);
+        SlimeWorld slimeWorld = SlimeWorldReaderRegistry.readWorld(loader, worldName, serializedWorld, propertyMap, readOnly);
         Logging.success("Applying datafixers for "  + YELLOW + worldName + GREEN + ".");
+        SlimeWorld dataFixed = SlimeNMSBridge.instance().applyDataFixers(slimeWorld);
+
+        if (!readOnly) loader.saveWorld(worldName, SlimeSerializer.serialize(dataFixed)); // Write dataFixed world back to loader
         SlimeNMSBridge.instance().applyDataFixers(slimeWorld);
 
         Logging.success("World " + worldName + " loaded in " + YELLOW + (System.currentTimeMillis() - start) + "ms.");
 
-        registerWorld(slimeWorld);
-        return slimeWorld;
+        registerWorld(dataFixed);
+        return dataFixed;
     }
 
     @Override
